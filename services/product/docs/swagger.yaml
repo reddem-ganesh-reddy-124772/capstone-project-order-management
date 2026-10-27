@@ -1,0 +1,465 @@
+basePath: /
+definitions:
+  controller.ReleaseStockRequest:
+    properties:
+      reservation_id:
+        type: string
+    required:
+    - reservation_id
+    type: object
+  controller.ReserveStockRequest:
+    properties:
+      product_id:
+        type: integer
+      quantity:
+        type: integer
+      reservation_id:
+        type: string
+    required:
+    - product_id
+    - quantity
+    - reservation_id
+    type: object
+  dto.CreateProductRequest:
+    properties:
+      description:
+        description: Description provides additional information about the product.
+        type: string
+      name:
+        description: Name is the name of the product.
+        maxLength: 150
+        type: string
+      price:
+        description: Price is the product's selling price and must be greater than
+          zero.
+        type: number
+      stock:
+        description: Stock is the available quantity and cannot be negative.
+        minimum: 0
+        type: integer
+    required:
+    - name
+    - price
+    type: object
+  dto.ProductListResponse:
+    properties:
+      items:
+        description: Items contains the products on the current page.
+        items:
+          $ref: '#/definitions/dto.ProductResponse'
+        type: array
+      limit:
+        description: Limit is the maximum number of products per page.
+        type: integer
+      page:
+        description: Page is the current page number.
+        type: integer
+      total_pages:
+        description: TotalPages is the number of pages available for the matching
+          products.
+        type: integer
+      total_records:
+        description: TotalRecords is the number of products matching the filters.
+        type: integer
+    type: object
+  dto.ProductResponse:
+    properties:
+      created_at:
+        description: CreatedAt records when the product was created.
+        type: string
+      description:
+        description: Description explains the product.
+        type: string
+      id:
+        description: ID is the unique product identifier.
+        type: integer
+      name:
+        description: Name is the product name.
+        type: string
+      price:
+        description: Price is the product's selling price.
+        type: number
+      stock:
+        description: Stock is the available quantity.
+        type: integer
+      updated_at:
+        description: UpdatedAt records when the product was last updated.
+        type: string
+    type: object
+  dto.UpdateProductRequest:
+    properties:
+      description:
+        description: Description is the updated product description.
+        type: string
+      name:
+        description: Name is the updated product name.
+        maxLength: 150
+        type: string
+      price:
+        description: Price is the updated selling price and must be greater than zero.
+        type: number
+      stock:
+        description: Stock is the updated available quantity and cannot be negative.
+        minimum: 0
+        type: integer
+    required:
+    - name
+    - price
+    type: object
+  model.InventoryReservation:
+    properties:
+      created_at:
+        description: CreatedAt records when this reservation was created.
+        type: string
+      id:
+        description: ID is the database-generated primary key.
+        type: integer
+      product_id:
+        description: ProductID identifies the product whose stock is reserved.
+        type: integer
+      quantity:
+        description: Quantity is the number of units reserved.
+        type: integer
+      reservation_id:
+        description: |-
+          ReservationID uniquely identifies this reservation.
+          Retried requests must reuse the same ID.
+        type: string
+      status:
+        description: |-
+          Status records whether stock is currently reserved or released.
+          Allowed values are reserved and released.
+        type: string
+      updated_at:
+        description: UpdatedAt records when this reservation was last updated.
+        type: string
+    type: object
+host: localhost:8082
+info:
+  contact: {}
+  description: REST and GraphQL APIs for managing products.
+  title: Product Service API
+  version: "1.0"
+paths:
+  /api/inventory/reservations:
+    get:
+      description: Retrieves all inventory reservation records.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.InventoryReservation'
+            type: array
+        "500":
+          description: Failed to retrieve reservations
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all inventory reservations
+      tags:
+      - Inventory Reservations
+    post:
+      consumes:
+      - application/json
+      description: Reserves a specified quantity of an existing product.
+      parameters:
+      - description: Stock reservation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controller.ReserveStockRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Stock reserved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request or reservation error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Reserve product stock
+      tags:
+      - Inventory Reservations
+  /api/inventory/reservations/{reservation_id}:
+    get:
+      description: Retrieves a reservation using its reservation ID.
+      parameters:
+      - description: Reservation ID
+        in: path
+        name: reservation_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.InventoryReservation'
+        "400":
+          description: Reservation ID is required
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Reservation not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a stock reservation
+      tags:
+      - Inventory Reservations
+  /api/inventory/reservations/release:
+    post:
+      consumes:
+      - application/json
+      description: Releases stock associated with an existing reservation.
+      parameters:
+      - description: Reservation to release
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controller.ReleaseStockRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Stock released successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request or release error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Release reserved stock
+      tags:
+      - Inventory Reservations
+  /api/products:
+    get:
+      description: Lists products with optional filters, sorting, and pagination.
+        Parameters can be combined.
+      parameters:
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Records per page (default 10, maximum 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Filter by product name
+        in: query
+        name: name
+        type: string
+      - description: Minimum price
+        in: query
+        name: min_price
+        type: number
+      - description: Maximum price
+        in: query
+        name: max_price
+        type: number
+      - description: Filter by stock availability
+        in: query
+        name: in_stock
+        type: boolean
+      - description: 'Sort field: id, name, price, stock, created_at, updated_at'
+        in: query
+        name: sort_by
+        type: string
+      - description: 'Sort direction: asc or desc'
+        in: query
+        name: sort_order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ProductListResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List products
+      tags:
+      - Products
+    post:
+      consumes:
+      - application/json
+      description: Creates a product after validating its details.
+      parameters:
+      - description: Product details
+        in: body
+        name: product
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateProductRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.ProductResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a product
+      tags:
+      - Products
+  /api/products/{id}:
+    delete:
+      description: Deletes an existing product.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a product
+      tags:
+      - Products
+    get:
+      description: Returns the details of a product.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ProductResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a product by ID
+      tags:
+      - Products
+    put:
+      consumes:
+      - application/json
+      description: Updates the details of an existing product.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated product details
+        in: body
+        name: product
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateProductRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ProductResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update a product
+      tags:
+      - Products
+swagger: "2.0"

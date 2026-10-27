@@ -1,0 +1,217 @@
+basePath: /
+definitions:
+  dto.CreateOrderRequest:
+    properties:
+      customer_id:
+        description: CustomerID identifies the customer placing the order.
+        type: integer
+      items:
+        description: |-
+          Items contains all products requested in this order.
+          At least one item must be provided.
+        items:
+          $ref: '#/definitions/dto.OrderItemRequest'
+        minItems: 1
+        type: array
+    required:
+    - customer_id
+    - items
+    type: object
+  dto.OrderItemRequest:
+    properties:
+      product_id:
+        description: ProductID identifies the product in the Product Service.
+        type: integer
+      quantity:
+        description: |-
+          Quantity is the number of units requested.
+          It must be greater than zero.
+        type: integer
+    required:
+    - product_id
+    - quantity
+    type: object
+  dto.OrderItemResponse:
+    properties:
+      id:
+        description: ID uniquely identifies this order item.
+        type: integer
+      product_id:
+        description: ProductID identifies the product in Product Service.
+        type: integer
+      product_name:
+        description: ProductName stores the product name captured for this order.
+        type: string
+      quantity:
+        description: Quantity is the number of units ordered.
+        type: integer
+      subtotal:
+        description: Subtotal is the unit price multiplied by the quantity.
+        type: number
+      unit_price:
+        description: UnitPrice is the product price captured when the order was placed.
+        type: number
+    type: object
+  dto.OrderResponse:
+    properties:
+      created_at:
+        description: CreatedAt records when the order was created.
+        type: string
+      customer_id:
+        description: CustomerID identifies the customer who placed the order.
+        type: integer
+      id:
+        description: ID uniquely identifies the order.
+        type: integer
+      items:
+        description: Items contains the products included in the order.
+        items:
+          $ref: '#/definitions/dto.OrderItemResponse'
+        type: array
+      status:
+        description: Status is created, confirmed, or canceled.
+        type: string
+      total_amount:
+        description: TotalAmount is the total cost of all order items.
+        type: number
+      updated_at:
+        description: UpdatedAt records when the order was last updated.
+        type: string
+    type: object
+host: localhost:8081
+info:
+  contact: {}
+  description: REST and GraphQL APIs for managing customer orders.
+  title: Order Service API
+  version: "1.0"
+paths:
+  /api/orders:
+    get:
+      description: Returns all orders with their items.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.OrderResponse'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all orders
+      tags:
+      - Orders
+    post:
+      consumes:
+      - application/json
+      description: Creates an order and reserves stock for its products.
+      parameters:
+      - description: Order details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.OrderResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create an order
+      tags:
+      - Orders
+  /api/orders/{id}:
+    get:
+      description: Returns an order by its ID.
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.OrderResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get an order
+      tags:
+      - Orders
+  /api/orders/{id}/cancel:
+    patch:
+      description: Cancels an order and requests release of reserved stock.
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.OrderResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Cancel an order
+      tags:
+      - Orders
+  /api/orders/{id}/confirm:
+    patch:
+      description: Confirms an order that is eligible for confirmation.
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.OrderResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Confirm an order
+      tags:
+      - Orders
+swagger: "2.0"
