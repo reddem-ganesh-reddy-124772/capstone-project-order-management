@@ -1,4 +1,3 @@
-
 version: 0.2
 
 env:
@@ -7,13 +6,15 @@ env:
     GOARCH: amd64
     CGO_ENABLED: "0"
     GOTOOLCHAIN: auto
+    HOME: /tmp
+    GOCACHE: /tmp/go-build-cache
+    GOMODCACHE: /tmp/go-mod-cache
 
 phases:
   install:
-    runtime-versions:
-      golang: 1.24
     commands:
       - go version
+      - mkdir -p "$GOCACHE" "$GOMODCACHE"
 
   pre_build:
     commands:
