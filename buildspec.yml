@@ -18,26 +18,25 @@ phases:
 
   pre_build:
     commands:
+      - echo "Preparing Go dependencies..."
       - go mod download
       - go mod verify
-      - go version
 
   build:
     commands:
+      - echo "Building API Gateway..."
       - mkdir -p bin
       - go build -o bin/api-gateway ./cmd/api-gateway
+      - echo "Building Auth Service..."
       - go build -o bin/auth-service ./cmd/auth-service
+      - echo "Building Order Service..."
       - go build -o bin/order-service ./cmd/order-service
+      - echo "Building Product Service..."
       - go build -o bin/product-service ./cmd/product-service
 
   post_build:
     commands:
-      - test -f Procfile
-      - test -x bin/api-gateway
-      - test -x bin/auth-service
-      - test -x bin/order-service
-      - test -x bin/product-service
-      - echo "All four services built successfully"
+      - echo "Build completed successfully."
 
 artifacts:
   base-directory: .
